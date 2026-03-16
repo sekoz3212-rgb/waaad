@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZYRO | Securing C++ Applications</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ================= VARIABLES & RESET ================= */
+        :root {
+            --bg-color: #050505;
+            --surface-color: #111111;
+            --border-color: #27272a;
+            --text-main: #ffffff;
+            --text-muted: #a1a1aa;
+            --primary: #8b5cf6;
+            --primary-light: #a78bfa;
+            --success: #4ade80;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.6; overflow-x: hidden; }
+
+        /* ================= UTILITIES ================= */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; position: relative; z-index: 10; }
+        .text-center { text-align: center; }
+        .section-padding { padding: 8rem 0; }
+        .section-title { font-size: 3rem; font-weight: 800; margin-bottom: 1rem; letter-spacing: -1px; }
+        .section-subtitle { color: var(--text-muted); font-size: 1.2rem; max-width: 700px; margin: 0 auto 5rem auto; }
+
+        /* SCROLL REVEAL ANIMATIONS */
+        .reveal { opacity: 0; transform: translateY(40px); transition: all 0.8s cubic-bezier(0.5, 0, 0, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        .delay-1 { transition-delay: 0.1s; }
+        .delay-2 { transition-delay: 0.2s; }
+        .delay-3 { transition-delay: 0.3s; }
+
+        /* ================= BUTTONS ================= */
+        .btn { display: inline-block; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: var(--transition); text-align: center; border: 1px solid transparent; }
+        .btn-outline { background: transparent; color: var(--text-main); border-color: #333; }
+        .btn-outline:hover { border-color: #666; background: rgba(255,255,255,0.05); }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: #fff; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.2); }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4); }
+        .btn-large { padding: 1rem 2rem; font-size: 1.1rem; }
+
+        /* ================= NAVBAR & HEADER ================= */
+        header { position: fixed; top: 0; width: 100%; z-index: 1000; transition: var(--transition); border-bottom: 1px solid transparent; }
+        header.scrolled { background: rgba(5, 5, 5, 0.85); backdrop-filter: blur(12px); border-bottom-color: var(--border-color); }
+        .nav-container { display: flex; justify-content: space-between; align-items: center; height: 90px; }
+        .logo { font-size: 1.8rem; font-weight: 800; letter-spacing: 1px; color: var(--text-main); text-decoration: none; }
+        .logo span { color: var(--primary-light); }
+        nav ul { display: flex; list-style: none; gap: 3rem; }
+        nav a { color: var(--text-muted); text-decoration: none; font-size: 1rem; font-weight: 500; transition: var(--transition); position: relative; }
+        nav a:hover, nav a.active { color: var(--text-main); }
+        nav a::after { content: ''; position: absolute; width: 0; height: 2px; bottom: -5px; left: 0; background-color: var(--primary-light); transition: var(--transition); }
+        nav a:hover::after, nav a.active::after { width: 100%; }
+        .nav-buttons { display: flex; gap: 1rem; }
+        .menu-toggle { display: none; font-size: 1.5rem; color: var(--text-main); cursor: pointer; background: none; border: none; }
+
+        /* ================= HERO SECTION ================= */
+        .hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; position: relative; padding-top: 120px; }
+        #particles-js { position: absolute; width: 100%; height: 100%; top: 0; left: 0; z-index: 1; opacity: 0.3; }
+        h1 { font-size: 5.5rem; font-weight: 800; line-height: 1.05; letter-spacing: -2px; margin-bottom: 2rem; position: relative; z-index: 10; }
+        .highlight { background: linear-gradient(135deg, var(--primary-light), #c4b5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero-subtitle { color: var(--text-muted); font-size: 1.4rem; max-width: 700px; margin-bottom: 3rem; position: relative; z-index: 10; }
+        .hero-buttons { display: flex; gap: 1.5rem; margin-bottom: 5rem; position: relative; z-index: 10; }
+
+        /* ================= TERMINAL MOCKUP ================= */
+        .terminal-container { width: 100%; max-width: 750px; background-color: var(--surface-color); border: 1px solid var(--border-color); border-radius: 14px; overflow: hidden; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.7); text-align: left; position: relative; z-index: 10; }
+        .terminal-header { background-color: #1a1a1e; padding: 1rem 1.2rem; display: flex; gap: 0.6rem; border-bottom: 1px solid var(--border-color); }
+        .dot { width: 13px; height: 13px; border-radius: 50%; }
+        .dot.red { background-color: #ff5f56; }
+        .dot.yellow { background-color: #ffbd2e; }
+        .dot.green { background-color: #27c93f; }
+        .terminal-body { padding: 2rem; font-family: 'Fira Code', monospace; font-size: 1rem; color: var(--text-muted); line-height: 1.7; min-height: 220px; }
+        .terminal-body div { display: flex; align-items: center; margin-bottom: 0.5rem; }
+        .success { color: var(--success); }
+        .prompt { margin-right: 0.8rem; color: var(--text-main); font-weight: 500; }
+        .typed-cursor { font-weight: 100; color: var(--primary-light); animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* ================= FEATURES SECTION (With 3D Tilt capability) ================= */
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2.5rem; perspective: 1000px; }
+        .feature-card { background-color: var(--surface-color); border: 1px solid var(--border-color); padding: 3rem 2.5rem; border-radius: 16px; transition: border-color 0.3s, transform 0.1s; transform-style: preserve-3d; will-change: transform; }
+        .feature-card:hover { border-color: var(--primary); box-shadow: 0 15px 40px rgba(139, 92, 246, 0.15); }
+        .feature-icon { font-size: 2.5rem; margin-bottom: 1.5rem; transform: translateZ(30px); display: inline-block; }
+        .feature-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem; transform: translateZ(20px); }
+        .feature-desc { color: var(--text-muted); font-size: 1rem; transform: translateZ(10px); }
+
+        /* ================= PRICING SECTION ================= */
+        .pricing-toggle { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 4rem; font-weight: 500; }
+        .pricing-toggle .label { color: var(--text-muted); transition: var(--transition); }
+        .pricing-toggle .label.active { color: var(--text-main); font-weight: 600; }
+        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(26px); }
+        .save-badge { background: rgba(74, 222, 128, 0.15); color: var(--success); font-size: 0.8rem; font-weight: bold; padding: 0.3rem 0.8rem; border-radius: 20px; margin-left: 0.5rem; }
+
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2.5rem; align-items: flex-start; }
+        .pricing-card { background-color: var(--surface-color); border: 1px solid var(--border-color); padding: 4rem 3rem; border-radius: 16px; text-align: center; display: flex; flex-direction: column; transition: var(--transition); position: relative; }
+        .pricing-card.popular { border-color: var(--primary); border-width: 2px; box-shadow: 0 20px 50px rgba(139, 92, 246, 0.15); transform: scale(1.05); }
+        .pricing-card:not(.popular):hover { transform: translateY(-5px); border-color: #444; }
+        .popular-badge { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--primary), var(--primary-light)); padding: 0.4rem 1.5rem; border-radius: 20px; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.5px; }
+        .pricing-card h3 { font-size: 1.8rem; margin-bottom: 1rem; }
+        .price { font-size: 4rem; font-weight: 800; margin: 1.5rem 0; letter-spacing: -2px; }
+        .price span { font-size: 1.2rem; color: var(--text-muted); font-weight: normal; letter-spacing: 0; }
+        .pricing-features { list-style: none; margin-bottom: 3rem; text-align: left; }
+        .pricing-features li { margin-bottom: 1rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.8rem; font-size: 1.05rem; }
+        .pricing-features li::before { content: "✓"; color: var(--success); font-weight: 800; }
+        .pricing-card .btn { margin-top: auto; width: 100%; }
+
+        /* ================= CONTACT MODAL ================= */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 2000; opacity: 0; visibility: hidden; transition: var(--transition); }
+        .modal.active { opacity: 1; visibility: visible; }
+        .modal-content { background: var(--surface-color); border: 1px solid var(--border-color); padding: 4rem; border-radius: 16px; width: 100%; max-width: 600px; position: relative; transform: scale(0.9); transition: var(--transition); }
+        .modal.active .modal-content { transform: scale(1); }
+        .close-modal { position: absolute; top: 1.5rem; right: 1.5rem; font-size: 2rem; color: var(--text-muted); cursor: pointer; background: none; border: none; }
+        .close-modal:hover { color: var(--text-main); }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 500; }
+        .form-control { width: 100%; padding: 1rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); font-size: 1rem; }
+        .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15); }
+
+        /* ================= FOOTER ================= */
+        footer { border-top: 1px solid var(--border-color); padding: 6rem 0 3rem 0; margin-top: 5rem; }
+        .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 4rem; margin-bottom: 4rem; }
+        .footer-col .logo { font-size: 1.6rem; margin-bottom: 1rem; display: block; }
+        .footer-col h4 { font-size: 1.2rem; margin-bottom: 1.5rem; font-weight: 600; }
+        .footer-col ul { list-style: none; }
+        .footer-col ul li { margin-bottom: 1rem; }
+        .footer-col a { color: var(--text-muted); text-decoration: none; font-size: 1rem; transition: var(--transition); }
+        .footer-col a:hover { color: var(--text-main); }
+        .footer-bottom { text-align: center; color: var(--text-muted); padding-top: 3rem; border-top: 1px solid var(--border-color); font-size: 0.95rem; }
+
+        /* ================= RESPONSIVE ================= */
+        @media (max-width: 1024px) {
+            h1 { font-size: 4.5rem; }
+            .section-title { font-size: 2.8rem; }
+            .pricing-card.popular { transform: scale(1); }
+        }
+
+        @media (max-width: 768px) {
+            .nav-container { height: 70px; }
+            h1 { font-size: 3.2rem; }
+            .hero-subtitle { font-size: 1.2rem; }
+            .hero-buttons { flex-direction: column; width: 100%; max-width: 320px; gap: 1rem; }
+            .hero-buttons .btn { width: 100%; }
+            .section-title { font-size: 2.4rem; }
+            
+            .menu-toggle { display: block; }
+            nav { position: fixed; top: 70px; left: 0; width: 100%; background: var(--bg-color); border-bottom: 1px solid var(--border-color); transform: translateY(-100%); transition: var(--transition); opacity: 0; visibility: hidden; }
+            nav.active { transform: translateY(0); opacity: 1; visibility: visible; }
+            nav ul { flex-direction: column; padding: 3rem; gap: 2rem; text-align: center; }
+            .nav-buttons { display: none; }
+            
+            .pricing-grid, .features-grid { grid-template-columns: 1fr; }
+            .pricing-card.popular { transform: scale(1); }
+            .modal-content { padding: 3rem 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header id="header">
+        <div class="container nav-container">
+            <a href="#" class="logo">ZYRO<span>.</span></a>
+            <button class="menu-toggle" id="menu-toggle">&#9776;</button>
+            <nav id="nav-menu">
+                <ul>
+                    <li><a href="#hero" class="active">Overview</a></li>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#pricing">Pricing</a></li>
+                    <li><a href="#" id="contact-sales-nav">Contact</a></li>
+                </ul>
+            </nav>
+            <div class="nav-buttons">
+                <a href="#" class="btn btn-outline">Log in</a>
+                <a href="#" class="btn btn-primary">Get Started</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section id="hero" class="hero">
+            <div id="particles-js"></div>
+            
+            <div class="container text-center">
+                <h1 class="reveal">
+                    Secure your<br>
+                    <span class="highlight">C++ Application</span><br>
+                    without limits.
+                </h1>
+                
+                <p class="hero-subtitle reveal delay-1">
+                    Implement enterprise-grade licensing and protection for your software in under 5 minutes, with zero friction.
+                </p>
+
+                <div class="hero-buttons reveal delay-2">
+                    <a href="#pricing" class="btn btn-primary btn-large">View Pricing &rarr;</a>
+                    <a href="#" class="btn btn-outline btn-large">Documentation</a>
+                </div>
+
+                <div class="terminal-container reveal delay-3">
+                    <div class="terminal-header">
+                        <div class="dot red"></div>
+                        <div class="dot yellow"></div>
+                        <div class="dot green"></div>
+                    </div>
+                    <div class="terminal-body" id="terminal-content">
+                        </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="container section-padding text-center">
+            <h2 class="section-title reveal">Enterprise-Grade Security</h2>
+            <p class="section-subtitle reveal">Everything you need to distribute your software safely and monetize it effectively worldwide.</p>
+            
+            <div class="features-grid">
+                <div class="feature-card reveal delay-1">
+                    <div class="feature-icon">🛡️</div>
+                    <h3 class="feature-title">Advanced Anti-Tamper</h3>
+                    <p class="feature-desc">State-of-the-art memory protection and code obfuscation to prevent reverse engineering and dumping.</p>
+                </div>
+                <div class="feature-card reveal delay-2">
+                    <div class="feature-icon">🔑</div>
+                    <h3 class="feature-title">Smart Licensing</h3>
+                    <p class="feature-desc">Generate, validate, and revoke HWID-locked licenses in real-time via our lightning-fast API.</p>
+                </div>
+                <div class="feature-card reveal delay-3">
+                    <div class="feature-icon">⚡</div>
+                    <h3 class="feature-title">5-Minute Integration</h3>
+                    <p class="feature-desc">Drop-in C++ headers. No complex SDKs or messy dependencies required to slow down your pipeline.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="pricing" class="container section-padding text-center">
+            <h2 class="section-title reveal">Simple, transparent pricing</h2>
+            <p class="section-subtitle reveal">Start for free, upgrade when you need more power and control.</p>
+
+            <div class="pricing-toggle reveal">
+                <span class="label active" id="label-monthly">Monthly</span>
+                <label class="switch">
+                    <input type="checkbox" id="pricing-switch">
+                    <span class="slider"></span>
+                </label>
+                <span class="label" id="label-yearly">Annually</span>
+                <span class="save-badge">Save 20%</span>
+            </div>
+
+            <div class="pricing-grid">
+                <div class="pricing-card reveal delay-1">
+                    <h3>Starter</h3>
+                    <div class="price">$<span class="price-val" data-monthly="0" data-yearly="0">0</span><span class="price-period">/mo</span></div>
+                    <ul class="pricing-features">
+                        <li>Basic Obfuscation</li>
+                        <li>Up to 100 Active Licenses</li>
+                        <li>Community Support</li>
+                    </ul>
+                    <a href="#" class="btn btn-outline">Start Free</a>
+                </div>
+
+                <div class="pricing-card popular reveal delay-2">
+                    <div class="popular-badge">MOST POPULAR</div>
+                    <h3>Pro</h3>
+                    <div class="price">$<span class="price-val" data-monthly="49" data-yearly="39">49</span><span class="price-period">/mo</span></div>
+                    <ul class="pricing-features">
+                        <li>Advanced Anti-Tampering</li>
+                        <li>Unlimited Licenses</li>
+                        <li>Strict HWID Locking</li>
+                        <li>Priority Email Support</li>
+                    </ul>
+                    <a href="#" class="btn btn-primary">Get Pro Plan</a>
+                </div>
+
+                <div class="pricing-card reveal delay-3">
+                    <h3>Enterprise</h3>
+                    <div class="price">$<span class="price-val" data-monthly="199" data-yearly="159">199</span><span class="price-period">/mo</span></div>
+                    <ul class="pricing-features">
+                        <li>Custom Obfuscation Engine</li>
+                        <li>White-label API Endpoints</li>
+                        <li>Dedicated Account Manager</li>
+                        <li>24/7 Phone Support</li>
+                    </ul>
+                    <button class="btn btn-outline contact-sales-btn">Contact Sales</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div class="modal" id="contact-modal">
+        <div class="modal-content">
+            <button class="close-modal" id="close-modal">&times;</button>
+            <h2 class="section-title text-center" style="font-size: 2.2rem; margin-bottom: 2rem;">Talk to our Sales Team</h2>
+            <form id="contact-form">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" class="form-control" placeholder="John Doe" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Work Email</label>
+                    <input type="email" id="email" class="form-control" placeholder="john@yourcompany.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="message">Tell us about your project</label>
+                    <textarea id="message" class="form-control" rows="4" placeholder="I'm interested in the Enterprise plan for..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-large" style="width: 100%;">Submit Request</button>
+            </form>
+        </div>
+    </div>
+
+    <footer class="container">
+        <div class="footer-grid">
+            <div class="footer-col reveal delay-1">
+                <a href="#" class="logo">ZYRO<span>.</span></a>
+                <p style="color: var(--text-muted); margin-top: 1rem; font-size: 0.95rem;">
+                    Securing C++ applications worldwide with cutting-edge technology.
+                </p>
+            </div>
+            <div class="footer-col reveal delay-2">
+                <h4>Product</h4>
+                <ul>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#pricing">Pricing</a></li>
+                    <li><a href="#">Documentation</a></li>
+                    <li><a href="#">Changelog</a></li>
+                </ul>
+            </div>
+            <div class="footer-col reveal delay-3">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="#">Terms of Service</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Refund Policy</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom reveal">
+            &copy; 2026 ZYRO Security. All rights reserved.
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // 1. SCROLL REVEAL ANIMATIONS (INTERSECTION OBSERVER)
+            const reveals = document.querySelectorAll('.reveal');
+            const revealOptions = { threshold: 0.15, rootMargin: "0px 0px -50px 0px" };
+            const revealOnScroll = new IntersectionObserver(function(entries, observer) {
+                entries.forEach(entry => {
+                    if (!entry.isIntersecting) return;
+                    entry.target.classList.add('active');
+                    observer.unobserve(entry.target); // Once revealed, stop observing
+                });
+            }, revealOptions);
+            reveals.forEach(reveal => revealOnScroll.observe(reveal));
+
+            // 2. 3D TILT EFFECT ON FEATURE CARDS
+            const tiltCards = document.querySelectorAll('.feature-card');
+            tiltCards.forEach(card => {
+                card.addEventListener('mousemove', e => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left; // x position within the element
+                    const y = e.clientY - rect.top;  // y position within the element
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    
+                    // Calculate rotation (max 15 degrees)
+                    const rotateX = ((y - centerY) / centerY) * -15; 
+                    const rotateY = ((x - centerX) / centerX) * 15;
+                    
+                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    // Reset to original position
+                    card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+                });
+            });
+
+            // 3. TERMINAL TYPING EFFECT
+            const terminalContent = document.getElementById('terminal-content');
+            const lines = [
+                { type: 'cmd', text: 'zyro install @latest' },
+                { type: 'success', text: '[+] Package installed successfully.' },
+                { type: 'cmd', text: 'zyro protect --target main.exe' },
+                { type: 'success', text: '[+] Advanced obfuscation complete.' },
+                { type: 'cmd', text: 'zyro license --generate' },
+                { type: 'success', text: '[+] API Key: ZYRO-PRO-XXXX-YYYY' }
+            ];
+
+            let lineIndex = 0; let charIndex = 0;
+            const typingSpeed = 40; const lineDelay = 600;
+
+            function typeWriter() {
+                if (lineIndex < lines.length) {
+                    const currentLine = lines[lineIndex];
+                    if (currentLine.type === 'cmd') {
+                        if (charIndex === 0) terminalContent.innerHTML += `<div><span class="prompt">&gt;</span><span id="typing-line-${lineIndex}"></span><span class="typed-cursor">|</span></div>`;
+                        
+                        if (charIndex < currentLine.text.length) {
+                            document.getElementById(`typing-line-${lineIndex}`).innerHTML += currentLine.text.charAt(charIndex);
+                            charIndex++;
+                            setTimeout(typeWriter, typingSpeed);
+                        } else {
+                            document.querySelector(`#typing-line-${lineIndex} + .typed-cursor`).remove();
+                            charIndex = 0; lineIndex++;
+                            setTimeout(typeWriter, lineDelay);
+                        }
+                    } else if (currentLine.type === 'success') {
+                        terminalContent.innerHTML += `<div class="success">${currentLine.text}</div>`;
+                        lineIndex++; setTimeout(typeWriter, lineDelay);
+                    }
+                } else {
+                    setTimeout(() => { terminalContent.innerHTML = ''; lineIndex = 0; charIndex = 0; typeWriter(); }, 5000);
+                }
+                terminalContent.scrollTop = terminalContent.scrollHeight;
+            }
+            setTimeout(typeWriter, 1200);
+
+            // 4. STICKY HEADER & ACTIVE LINKS
+            const header = document.getElementById('header');
+            const navLinks = document.querySelectorAll('nav a');
+            const sections = document.querySelectorAll('section');
+
+            window.addEventListener('scroll', () => {
+                header.classList.toggle('scrolled', window.scrollY > 50);
+                let currentSectionId = '';
+                sections.forEach(section => {
+                    if (pageYOffset >= (section.offsetTop - 150)) { currentSectionId = section.getAttribute('id'); }
+                });
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${currentSectionId}`) link.classList.add('active');
+                });
+            });
+
+            // 5. PRICING TOGGLE
+            const pricingSwitch = document.getElementById('pricing-switch');
+            const priceVals = document.querySelectorAll('.price-val');
+            const pricePeriods = document.querySelectorAll('.price-period');
+            const labelMonthly = document.getElementById('label-monthly');
+            const labelYearly = document.getElementById('label-yearly');
+
+            pricingSwitch.addEventListener('change', function() {
+                priceVals.forEach(pricePop => {
+                    if (this.checked) {
+                        pricePop.innerText = pricePop.getAttribute('data-yearly');
+                        labelYearly.classList.add('active'); labelMonthly.classList.remove('active');
+                        pricePeriods.forEach(p => p.innerText = '/mo, billed annually');
+                    } else {
+                        pricePop.innerText = pricePop.getAttribute('data-monthly');
+                        labelMonthly.classList.add('active'); labelYearly.classList.remove('active');
+                        pricePeriods.forEach(p => p.innerText = '/mo');
+                    }
+                });
+            });
+
+            // 6. MOBILE MENU
+            const menuToggle = document.getElementById('menu-toggle');
+            const navMenu = document.getElementById('nav-menu');
+            menuToggle.addEventListener('click', () => navMenu.classList.toggle('active'));
+            navLinks.forEach(link => link.addEventListener('click', () => navMenu.classList.remove('active')));
+
+            // 7. PARTICLES BACKGROUND
+            particlesJS('particles-js', {
+                "particles": {
+                    "number": { "value": 50, "density": { "enable": true, "value_area": 800 } },
+                    "color": { "value": "#a78bfa" },
+                    "shape": { "type": "circle" },
+                    "opacity": { "value": 0.3, "random": true },
+                    "size": { "value": 2, "random": true },
+                    "line_linked": { "enable": true, "distance": 150, "color": "#a78bfa", "opacity": 0.1, "width": 1 },
+                    "move": { "enable": true, "speed": 1, "direction": "none", "random": true, "out_mode": "out" }
+                },
+                "interactivity": {
+                    "detect_on": "canvas",
+                    "events": { "onhover": { "enable": true, "mode": "grab" } },
+                    "modes": { "grab": { "distance": 140, "line_linked": { "opacity": 0.4 } } }
+                },
+                "retina_detect": true
+            });
+
+            // 8. MODAL
+            const modal = document.getElementById('contact-modal');
+            const contactForm = document.getElementById('contact-form');
+            document.querySelectorAll('.contact-sales-btn').forEach(btn => btn.addEventListener('click', () => modal.classList.add('active')));
+            document.getElementById('contact-sales-nav').addEventListener('click', (e) => { e.preventDefault(); modal.classList.add('active'); });
+            document.getElementById('close-modal').addEventListener('click', () => modal.classList.remove('active'));
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
+
+            contactForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                alert(`Thanks ${document.getElementById('name').value}! Your request has been submitted. Our sales team will contact you shortly.`);
+                modal.classList.remove('active');
+                contactForm.reset();
+            });
+        });
+    </script>
+</body>
+</html>
